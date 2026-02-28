@@ -18,8 +18,8 @@ func NewBasicHandler(e *echo.Echo) {
 }
 
 func (h *BasicHandler) Ping(c echo.Context) error {
-	return c.JSON(http.StatusOK, map[string]string{
-		"message": "pong",
+	return c.JSON(http.StatusOK, map[string]interface{}{
+		"success": true,
 	})
 }
 
