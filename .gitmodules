@@ -1,0 +1,3 @@
+[submodule ".agent/skills/golang-best-practices"]
+	path = .agent/skills/golang-best-practices
+	url = https://github.com/saifoelloh/golang-best-practices-skill/
