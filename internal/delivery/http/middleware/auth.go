@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"perpustakaan/pkg/jwt"
-	"perpustakaan/pkg/response"
 
 	"github.com/labstack/echo/v4"
 )
@@ -15,7 +14,7 @@ func AuthMiddleware(tokenMaker jwt.TokenMaker) echo.MiddlewareFunc {
 		return func(c echo.Context) error {
 			userID, err := tokenMaker.ExtractUserID(c)
 			if err != nil {
-				return response.Error(c, http.StatusUnauthorized, err.Error())
+				return c.JSON(http.StatusUnauthorized, map[string]string{"message": err.Error()})
 			}
 
 			// Set user_id in context for subsequent handlers

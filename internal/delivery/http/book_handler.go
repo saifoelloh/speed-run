@@ -4,7 +4,6 @@ import (
 	"net/http"
 	"strconv"
 
-	"perpustakaan/internal/delivery/http/middleware"
 	"perpustakaan/internal/domain"
 	"perpustakaan/pkg/jwt"
 
@@ -33,8 +32,7 @@ func NewBookHandler(e *echo.Echo, us domain.BookUsecase, tokenMaker jwt.TokenMak
 	// GET /books
 	// GET /books?author=X
 	// GET /books?page=1&limit=2
-	// ONLY this endpoint is protected according to Level 5: "GET /books (protected)"
-	bookGrp.GET("", handler.GetAll, middleware.AuthMiddleware(tokenMaker))
+	bookGrp.GET("", handler.GetAll)
 
 	// Get Book by ID
 	// GET /books/:id
