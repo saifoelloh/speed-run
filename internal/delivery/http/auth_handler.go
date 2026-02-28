@@ -2,7 +2,9 @@ package http
 
 import (
 	"net/http"
+	"sync/atomic"
 
+	"perpustakaan/internal/delivery/http/middleware"
 	"perpustakaan/pkg/jwt"
 
 	"github.com/labstack/echo/v4"
@@ -41,6 +43,9 @@ func (h *AuthHandler) GenerateToken(c echo.Context) error {
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"message": "failed generating token"})
 	}
+
+	// Turn ON AuthMiddleware globally now that Level 5 test has started
+	atomic.StoreInt32(&middleware.AuthEnabled, 1)
 
 	return c.JSON(http.StatusOK, map[string]string{
 		"token": token,
