@@ -1,9 +1,9 @@
 #!/bin/bash
 
 # Configuration
-BASE_URL="http://localhost:8080"
+BASE_URL="https://speed-run.onrender.com"
 echo "========================================"
-echo "🚀 Starting API Tests for Boss Speedrun"
+echo "🚀 Starting Full API Tests for Speedrun"
 echo "========================================"
 echo "Target URL: $BASE_URL"
 echo ""
@@ -20,24 +20,32 @@ curl -s -X POST "$BASE_URL/echo" \
   -d '{"message": "hello", "nested": {"key": "val"}, "number": 42}' | jq .
 echo ""
 
-# Level 5: Auth Guard (Get Token)
-echo "▶️ Level 5 (Prep): POST /auth/token"
-TOKEN_RESPONSE=$(curl -s -X POST "$BASE_URL/auth/token")
-TOKEN=$(echo $TOKEN_RESPONSE | jq -r .token)
-echo "Received Token: ${TOKEN:0:15}..."
-echo ""
-
-# Level 3: CRUD Create (POST /books) -> Now public
-echo "▶️ Level 3: POST /books (Create)"
+# Level 3: CRUD Create (POST /books) -> Now public, returns Raw Object
+echo "▶️ Level 3: POST /books (Create Book 1)"
 CREATE_RESPONSE=$(curl -s -X POST "$BASE_URL/books" \
   -H "Content-Type: application/json" \
   -d '{"title": "The Go Programming Language", "author": "Alan A. A. Donovan", "year": 2015}')
 echo $CREATE_RESPONSE | jq .
-BOOK_ID=$(echo $CREATE_RESPONSE | jq -r .data.id)
+BOOK_ID=$(echo $CREATE_RESPONSE | jq -r .id)
 echo "Created Book ID: $BOOK_ID"
 echo ""
 
-# Level 4: CRUD Read All (Protected)
+echo "▶️ Level 3: POST /books (Create Book 2)"
+curl -s -X POST "$BASE_URL/books" \
+  -H "Content-Type: application/json" \
+  -d '{"title": "Black Hat Go", "author": "Tom Steele", "year": 2020}' | jq .
+echo ""
+
+# Level 5: Auth Guard (Get Token)
+echo "▶️ Level 5 (Prep): POST /auth/token (Login)"
+TOKEN_RESPONSE=$(curl -s -X POST "$BASE_URL/auth/token" \
+  -H "Content-Type: application/json" \
+  -d '{"username": "admin", "password": "password"}')
+TOKEN=$(echo $TOKEN_RESPONSE | jq -r .token)
+echo "Received Token: ${TOKEN:0:15}..."
+echo ""
+
+# Level 4: CRUD Read All (Protected now because Level 5 was triggered)
 echo "▶️ Level 4 & 5: GET /books (Protected List)"
 curl -s -X GET "$BASE_URL/books" \
   -H "Authorization: Bearer $TOKEN" | jq .
@@ -78,9 +86,15 @@ echo "▶️ Level 7: GET /books/:id (Not Found - 404)"
 curl -s -w "\nHTTP Status: %{http_code}\n" -X GET "$BASE_URL/books/invalid-uuid-0000" | grep -v 'HTTP Status: 100'
 echo ""
 
+echo "▶️ Level 7: PUT /books/nonexistent (Not Found - 404)"
+curl -s -w "\nHTTP Status: %{http_code}\n" -X PUT "$BASE_URL/books/nonexistent-bot" \
+  -H "Content-Type: application/json" \
+  -d '{"title": "Ghost Book"}' | grep -v 'HTTP Status: 100'
+echo ""
+
 # Level 4: CRUD Delete
 echo "▶️ Level 4: DELETE /books/:id (Delete)"
-curl -s -X DELETE "$BASE_URL/books/$BOOK_ID" | jq .
+curl -s -i -X DELETE "$BASE_URL/books/$BOOK_ID"
 echo ""
 
 echo "========================================"
