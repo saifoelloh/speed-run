@@ -7,7 +7,6 @@ import (
 	"perpustakaan/internal/delivery/http/middleware"
 	"perpustakaan/internal/domain"
 	"perpustakaan/pkg/jwt"
-	"perpustakaan/pkg/response"
 
 	"github.com/labstack/echo/v4"
 )
@@ -53,19 +52,19 @@ func NewBookHandler(e *echo.Echo, us domain.BookUsecase, tokenMaker jwt.TokenMak
 func (h *BookHandler) Create(c echo.Context) error {
 	var book domain.Book
 	if err := c.Bind(&book); err != nil {
-		return response.Error(c, http.StatusBadRequest, "Invalid request payload")
+		return c.JSON(http.StatusBadRequest, map[string]string{"message": "Invalid request payload"})
 	}
 
 	if book.Title == "" || book.Author == "" {
-		return response.Error(c, http.StatusBadRequest, "Title and Author are required")
+		return c.JSON(http.StatusBadRequest, map[string]string{"message": "Title and Author are required"})
 	}
 
 	err := h.BUsecase.Create(c.Request().Context(), &book)
 	if err != nil {
-		return response.Error(c, http.StatusInternalServerError, err.Error())
+		return c.JSON(http.StatusInternalServerError, map[string]string{"message": err.Error()})
 	}
 
-	return response.Success(c, http.StatusCreated, "Book created successfully", book)
+	return c.JSON(http.StatusCreated, book)
 }
 
 func (h *BookHandler) GetAll(c echo.Context) error {
@@ -96,10 +95,14 @@ func (h *BookHandler) GetAll(c echo.Context) error {
 
 	books, err := h.BUsecase.GetAll(c.Request().Context(), query)
 	if err != nil {
-		return response.Error(c, http.StatusInternalServerError, err.Error())
+		return c.JSON(http.StatusInternalServerError, map[string]string{"message": err.Error()})
 	}
 
-	return response.Success(c, http.StatusOK, "Books retrieved successfully", books)
+	if books == nil {
+		// return empty array instead of null for Level 3 expectations
+		books = []*domain.Book{}
+	}
+	return c.JSON(http.StatusOK, books)
 }
 
 func (h *BookHandler) GetByID(c echo.Context) error {
@@ -108,12 +111,12 @@ func (h *BookHandler) GetByID(c echo.Context) error {
 	book, err := h.BUsecase.GetByID(c.Request().Context(), id)
 	if err != nil {
 		if err.Error() == "book not found" {
-			return response.Error(c, http.StatusNotFound, "Book not found")
+			return c.JSON(http.StatusNotFound, map[string]string{"message": "Book not found"})
 		}
-		return response.Error(c, http.StatusInternalServerError, err.Error())
+		return c.JSON(http.StatusInternalServerError, map[string]string{"message": err.Error()})
 	}
 
-	return response.Success(c, http.StatusOK, "Book retrieved successfully", book)
+	return c.JSON(http.StatusOK, book)
 }
 
 func (h *BookHandler) Update(c echo.Context) error {
@@ -121,20 +124,20 @@ func (h *BookHandler) Update(c echo.Context) error {
 
 	var book domain.Book
 	if err := c.Bind(&book); err != nil {
-		return response.Error(c, http.StatusBadRequest, "Invalid request payload")
+		return c.JSON(http.StatusBadRequest, map[string]string{"message": "Invalid request payload"})
 	}
 
 	book.ID = id
 	err := h.BUsecase.Update(c.Request().Context(), &book)
 	if err != nil {
 		if err.Error() == "book not found" {
-			return response.Error(c, http.StatusNotFound, "Book not found")
+			return c.JSON(http.StatusNotFound, map[string]string{"message": "Book not found"})
 		}
-		return response.Error(c, http.StatusInternalServerError, err.Error())
+		return c.JSON(http.StatusInternalServerError, map[string]string{"message": err.Error()})
 	}
 
 	updatedBook, _ := h.BUsecase.GetByID(c.Request().Context(), id)
-	return response.Success(c, http.StatusOK, "Book updated successfully", updatedBook)
+	return c.JSON(http.StatusOK, updatedBook)
 }
 
 func (h *BookHandler) Delete(c echo.Context) error {
@@ -143,10 +146,10 @@ func (h *BookHandler) Delete(c echo.Context) error {
 	err := h.BUsecase.Delete(c.Request().Context(), id)
 	if err != nil {
 		if err.Error() == "book not found" {
-			return response.Error(c, http.StatusNotFound, "Book not found")
+			return c.JSON(http.StatusNotFound, map[string]string{"message": "Book not found"})
 		}
-		return response.Error(c, http.StatusInternalServerError, err.Error())
+		return c.JSON(http.StatusInternalServerError, map[string]string{"message": err.Error()})
 	}
 
-	return response.Success(c, http.StatusOK, "Book deleted successfully", nil)
+	return c.JSON(http.StatusOK, map[string]string{"message": "Book deleted successfully"})
 }
