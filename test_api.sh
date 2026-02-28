@@ -17,7 +17,7 @@ echo ""
 echo "▶️ Level 2: POST /echo"
 curl -s -X POST "$BASE_URL/echo" \
   -H "Content-Type: application/json" \
-  -d '{"message": "Hello Echo!"}' | jq .
+  -d '{"message": "hello", "nested": {"key": "val"}, "number": 42}' | jq .
 echo ""
 
 # Level 5: Auth Guard (Get Token)

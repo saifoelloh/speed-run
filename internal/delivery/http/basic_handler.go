@@ -1,7 +1,6 @@
 package http
 
 import (
-	"encoding/json"
 	"io"
 	"net/http"
 
@@ -26,19 +25,13 @@ func (h *BasicHandler) Ping(c echo.Context) error {
 func (h *BasicHandler) Echo(c echo.Context) error {
 	body, err := io.ReadAll(c.Request().Body)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Failed to read body"})
+		return c.String(http.StatusBadRequest, "Failed to read body")
 	}
 	defer c.Request().Body.Close()
 
 	if len(body) == 0 {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Empty body"})
+		return c.JSON(http.StatusOK, map[string]interface{}{})
 	}
 
-	var rawJson map[string]interface{}
-	err = json.Unmarshal(body, &rawJson)
-	if err != nil {
-		return c.String(http.StatusOK, string(body))
-	}
-
-	return c.JSON(http.StatusOK, rawJson)
+	return c.Blob(http.StatusOK, "application/json", body)
 }
