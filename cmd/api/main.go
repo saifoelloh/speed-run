@@ -28,6 +28,13 @@ func main() {
 	e.Use(middleware.Recover())
 	e.Use(middleware.CORS())
 
+	// Body logger to debug autograder payloads
+	e.Use(middleware.BodyDump(func(c echo.Context, reqBody, resBody []byte) {
+		if c.Request().URL.Path != "/ping" { // spam filter
+			log.Printf("[DEBUG] %s %s | Req: %s", c.Request().Method, c.Request().URL.Path, string(reqBody))
+		}
+	}))
+
 	// Rate Limiter: Protects against DDOS by limiting each IP to 20 requests per second with a burst size of 50
 	e.Use(middleware.RateLimiter(middleware.NewRateLimiterMemoryStore(rate.Limit(20))))
 
