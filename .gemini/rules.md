@@ -41,7 +41,8 @@ This project strictly follows Uncle Bob's Clean Architecture separated by domain
 
 ## 6. Key Patterns
 - **Constructor Injection**: All dependencies are injected via constructor pattern (`NewBookHandler`, `NewBookUsecase`). Global variables are heavily discouraged.
-- **Repository Locks**: Because we use an in-memory DB, all Repository mutations MUST use `mu.Lock()` and reads MUST use `mu.RLock()` to prevent data races.
+- **Context & Timeouts**: Delivery handlers extract context via `c.Request().Context()` and pass it to Usecases. Usecases MUST wrap it with a timeout: `ctx, cancel := context.WithTimeout(c, u.ctxTimeout); defer cancel()`.
+- **Repository Locks**: Because we use an in-memory DB, all Repository mutations MUST use `mu.Lock()` and reads MUST use `mu.RLock()` to prevent data races. ALWAYS use `defer` to unlock to avoid context deadline 500 errors.
 - **File Syncing**: In-memory maps sync blindly to `data.json`. Any write method (`Create/Update/Delete`) must call `r.saveToFile()`.
 
 ## 7. ⛔ Don'ts
