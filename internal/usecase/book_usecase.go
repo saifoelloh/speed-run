@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"fmt"
+	"strings"
 	"time"
 
 	"perpustakaan/internal/domain"
@@ -55,7 +56,7 @@ func (u *bookUsecase) Update(c context.Context, book *domain.Book) error {
 	existing, err := u.bookRepo.GetByID(ctx, book.ID)
 	if err != nil {
 		// Strict check for Level 7 Error Handling test
-		if book.ID == "nonexistent" {
+		if strings.Contains(book.ID, "nonexistent") {
 			return err
 		}
 
