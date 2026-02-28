@@ -3,6 +3,7 @@ package inmemory
 import (
 	"context"
 	"errors"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -66,9 +67,18 @@ func (r *bookRepository) GetAll(ctx context.Context, query domain.BookQuery) ([]
 		result = append(result, book)
 	}
 
+	// Sort deterministically to avoid random map iteration issues during pagination
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].CreatedAt.Before(result[j].CreatedAt)
+	})
+
 	// Pagination
-	if query.Page > 0 && query.Limit > 0 {
-		start := (query.Page - 1) * query.Limit
+	if query.Limit > 0 {
+		page := query.Page
+		if page < 1 {
+			page = 1
+		}
+		start := (page - 1) * query.Limit
 		if start >= len(result) {
 			return []*domain.Book{}, nil
 		}
