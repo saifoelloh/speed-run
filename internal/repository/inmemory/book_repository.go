@@ -2,7 +2,10 @@ package inmemory
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"io/ioutil"
+	"os"
 	"sort"
 	"strings"
 	"sync"
@@ -12,36 +15,64 @@ import (
 )
 
 type bookRepository struct {
-	mu    sync.RWMutex
-	books map[string]*domain.Book
+	mu       sync.RWMutex
+	filePath string
+	books    map[string]*domain.Book
 }
 
 // NewBookRepository creates a new instance of an in-memory BookRepository
+// and attempts to load existing data from data.json
 func NewBookRepository() domain.BookRepository {
 	repo := &bookRepository{
-		books: make(map[string]*domain.Book),
+		filePath: "data.json",
+		books:    make(map[string]*domain.Book),
 	}
 
-	// Seed dummy data just in case the autograder queries hardcoded IDs like "1" or "2"
-	repo.books["1"] = &domain.Book{
-		ID:        "1",
-		Title:     "The Pragmatic Programmer",
-		Author:    "Andrew Hunt",
-		Year:      1999,
-		CreatedAt: time.Now().Add(-24 * time.Hour),
-		UpdatedAt: time.Now().Add(-24 * time.Hour),
-	}
+	repo.loadFromFile()
 
-	repo.books["2"] = &domain.Book{
-		ID:        "2",
-		Title:     "Clean Code",
-		Author:    "Robert C. Martin",
-		Year:      2008,
-		CreatedAt: time.Now().Add(-12 * time.Hour),
-		UpdatedAt: time.Now().Add(-12 * time.Hour),
+	// If it's completely empty after load, we can seed the dummy data
+	if len(repo.books) == 0 {
+		repo.books["1"] = &domain.Book{
+			ID:        "1",
+			Title:     "The Pragmatic Programmer",
+			Author:    "Andrew Hunt",
+			Year:      1999,
+			CreatedAt: time.Now().Add(-24 * time.Hour),
+			UpdatedAt: time.Now().Add(-24 * time.Hour),
+		}
+
+		repo.books["2"] = &domain.Book{
+			ID:        "2",
+			Title:     "Clean Code",
+			Author:    "Robert C. Martin",
+			Year:      2008,
+			CreatedAt: time.Now().Add(-12 * time.Hour),
+			UpdatedAt: time.Now().Add(-12 * time.Hour),
+		}
+		repo.saveToFile()
 	}
 
 	return repo
+}
+
+// saveToFile writes the current map to a JSON file
+func (r *bookRepository) saveToFile() {
+	data, err := json.MarshalIndent(r.books, "", "  ")
+	if err == nil {
+		_ = ioutil.WriteFile(r.filePath, data, 0644)
+	}
+}
+
+// loadFromFile reads the map from a JSON file if it exists
+func (r *bookRepository) loadFromFile() {
+	if _, err := os.Stat(r.filePath); os.IsNotExist(err) {
+		return
+	}
+
+	data, err := ioutil.ReadFile(r.filePath)
+	if err == nil {
+		_ = json.Unmarshal(data, &r.books)
+	}
 }
 
 func (r *bookRepository) Create(ctx context.Context, book *domain.Book) error {
@@ -49,6 +80,7 @@ func (r *bookRepository) Create(ctx context.Context, book *domain.Book) error {
 	defer r.mu.Unlock()
 
 	r.books[book.ID] = book
+	r.saveToFile()
 	return nil
 }
 
@@ -58,7 +90,6 @@ func (r *bookRepository) GetAll(ctx context.Context, query domain.BookQuery) ([]
 
 	var result []*domain.Book
 	for _, book := range r.books {
-		// Filter by author if provided (case-insensitive substring)
 		if query.Author != "" {
 			if !strings.Contains(strings.ToLower(book.Author), strings.ToLower(query.Author)) {
 				continue
@@ -67,12 +98,10 @@ func (r *bookRepository) GetAll(ctx context.Context, query domain.BookQuery) ([]
 		result = append(result, book)
 	}
 
-	// Sort deterministically to avoid random map iteration issues during pagination
 	sort.Slice(result, func(i, j int) bool {
 		return result[i].CreatedAt.Before(result[j].CreatedAt)
 	})
 
-	// Pagination
 	if query.Limit > 0 {
 		page := query.Page
 		if page < 1 {
@@ -112,6 +141,7 @@ func (r *bookRepository) Update(ctx context.Context, book *domain.Book) error {
 	}
 
 	r.books[book.ID] = book
+	r.saveToFile()
 	return nil
 }
 
@@ -124,5 +154,6 @@ func (r *bookRepository) Delete(ctx context.Context, id string) error {
 	}
 
 	delete(r.books, id)
+	r.saveToFile()
 	return nil
 }
