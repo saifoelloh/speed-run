@@ -2,6 +2,8 @@ package usecase
 
 import (
 	"context"
+	"crypto/rand"
+	"fmt"
 	"time"
 
 	"perpustakaan/internal/domain"
@@ -55,10 +57,18 @@ func (u *bookUsecase) Update(c context.Context, book *domain.Book) error {
 		return err
 	}
 
-	book.CreatedAt = existing.CreatedAt
-	book.UpdatedAt = time.Now()
+	if book.Title != "" {
+		existing.Title = book.Title
+	}
+	if book.Author != "" {
+		existing.Author = book.Author
+	}
+	if book.Year != 0 {
+		existing.Year = book.Year
+	}
+	existing.UpdatedAt = time.Now()
 
-	return u.bookRepo.Update(ctx, book)
+	return u.bookRepo.Update(ctx, existing)
 }
 
 func (u *bookUsecase) Delete(c context.Context, id string) error {
@@ -67,8 +77,12 @@ func (u *bookUsecase) Delete(c context.Context, id string) error {
 	return u.bookRepo.Delete(ctx, id)
 }
 
-// Very basic pseudo UUID mock to keep things simple
+// generateSimpleUUID generates a pseudo-UUID v4 string without external dependencies
 func generateSimpleUUID() string {
-	// fallback simple generation
-	return time.Now().Format("20060102150405.000000000") // rough unique stand-in
+	b := make([]byte, 16)
+	_, _ = rand.Read(b)
+	// Set standard UUID v4 bits
+	b[6] = (b[6] & 0x0f) | 0x40
+	b[8] = (b[8] & 0x3f) | 0x80
+	return fmt.Sprintf("%x-%x-%x-%x-%x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:])
 }
