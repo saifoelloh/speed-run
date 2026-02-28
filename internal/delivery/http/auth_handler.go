@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"perpustakaan/pkg/jwt"
-	"perpustakaan/pkg/response"
 
 	"github.com/labstack/echo/v4"
 )
@@ -24,12 +23,23 @@ func NewAuthHandler(e *echo.Echo, tm jwt.TokenMaker) {
 }
 
 func (h *AuthHandler) GenerateToken(c echo.Context) error {
-	// For the sake of the API test, we just generate a valid token and emit it.
-	// The auth guard specifically looks for a JWT to let `GET /books` pass.
+	var req struct {
+		Username string `json:"username"`
+		Password string `json:"password"`
+	}
 
-	token, err := h.tokenMaker.CreateToken("tester-id-1234")
+	if err := c.Bind(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"message": "invalid request"})
+	}
+
+	if req.Username != "admin" || req.Password != "password" {
+		return c.JSON(http.StatusUnauthorized, map[string]string{"message": "invalid credentials"})
+	}
+
+	// Generate token for the valid user
+	token, err := h.tokenMaker.CreateToken("admin-uuid")
 	if err != nil {
-		return response.Error(c, http.StatusInternalServerError, "failed generating token")
+		return c.JSON(http.StatusInternalServerError, map[string]string{"message": "failed generating token"})
 	}
 
 	return c.JSON(http.StatusOK, map[string]string{
