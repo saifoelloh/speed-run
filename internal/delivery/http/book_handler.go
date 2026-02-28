@@ -149,5 +149,5 @@ func (h *BookHandler) Delete(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"message": err.Error()})
 	}
 
-	return c.JSON(http.StatusOK, map[string]string{"message": "Book deleted successfully"})
+	return c.NoContent(http.StatusNoContent)
 }
