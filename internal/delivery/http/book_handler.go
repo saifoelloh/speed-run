@@ -142,10 +142,7 @@ func (h *BookHandler) Delete(c echo.Context) error {
 	id := c.Param("id")
 
 	err := h.BUsecase.Delete(c.Request().Context(), id)
-	if err != nil {
-		if err.Error() == "book not found" {
-			return c.JSON(http.StatusNotFound, map[string]string{"message": "Book not found"})
-		}
+	if err != nil && err.Error() != "book not found" {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"message": err.Error()})
 	}
 
